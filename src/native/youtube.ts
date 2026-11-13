@@ -85,14 +85,14 @@ interface ClientDef { name: string; id: number; version: string; ua: string; ctx
 
 const CLIENTS: ClientDef[] = [
   {
-    name: "ANDROID_VR", id: 28, version: "1.60.19",
-    ua: "com.google.android.apps.youtube.vr.oculus/1.60.19 (Linux; U; Android 12L; eureka-user Build/SQ3A.220605.009.A1) gzip",
-    ctx: { clientName: "ANDROID_VR", clientVersion: "1.60.19", deviceMake: "Oculus", deviceModel: "Quest 3", osName: "Android", osVersion: "12L", androidSdkVersion: 32, hl: "en", gl: "US" }
+    name: "ANDROID_VR", id: 28, version: "1.65.10",
+    ua: "com.google.android.apps.youtube.vr.oculus/1.65.10 (Linux; U; Android 12L; eureka-user Build/SQ3A.220605.009.A1) gzip",
+    ctx: { clientName: "ANDROID_VR", clientVersion: "1.65.10", deviceMake: "Oculus", deviceModel: "Quest 3", osName: "Android", osVersion: "12L", androidSdkVersion: 32, hl: "en", gl: "US" }
   },
   {
-    name: "IOS", id: 5, version: "19.45.4",
-    ua: "com.google.ios.youtube/19.45.4 (iPhone16,2; U; CPU iOS 18_1_0 like Mac OS X;)",
-    ctx: { clientName: "IOS", clientVersion: "19.45.4", deviceMake: "Apple", deviceModel: "iPhone16,2", osName: "iPhone", osVersion: "18.1.0.22B83", hl: "en", gl: "US" }
+    name: "IOS", id: 5, version: "19.49.7",
+    ua: "com.google.ios.youtube/19.49.7 (iPhone16,2; U; CPU iOS 17_5_1 like Mac OS X;)",
+    ctx: { clientName: "IOS", clientVersion: "19.49.7", deviceMake: "Apple", deviceModel: "iPhone16,2", osName: "iPhone", osVersion: "17.5.1.21F90", hl: "en", gl: "US" }
   },
   {
     name: "TV_EMBEDDED", id: 85, version: "2.0", embed: true,
@@ -100,9 +100,9 @@ const CLIENTS: ClientDef[] = [
     ctx: { clientName: "TVHTML5_SIMPLY_EMBEDDED_PLAYER", clientVersion: "2.0", hl: "en", gl: "US" }
   },
   {
-    name: "ANDROID", id: 3, version: "19.44.38",
-    ua: "com.google.android.youtube/19.44.38 (Linux; U; Android 11) gzip",
-    ctx: { clientName: "ANDROID", clientVersion: "19.44.38", osName: "Android", osVersion: "11", androidSdkVersion: 30, hl: "en", gl: "US" }
+    name: "ANDROID", id: 3, version: "20.10.38",
+    ua: "com.google.android.youtube/20.10.38 (Linux; U; Android 11) gzip",
+    ctx: { clientName: "ANDROID", clientVersion: "20.10.38", osName: "Android", osVersion: "11", androidSdkVersion: 30, hl: "en", gl: "US" }
   }
 ];
 
@@ -147,6 +147,7 @@ async function playerCall(c: ClientDef, videoId: string, env: Env): Promise<any>
 export async function getPlayer(videoId: string, env: Env, budgetMs = 20000): Promise<{ data: any; client: string }> {
   const deadline = Date.now() + budgetMs;
   let lastReason = "";
+  const trail: string[] = [];
   for (const c of CLIENTS) {
     if (deadline - Date.now() < 2500) break;
     try {
@@ -156,11 +157,14 @@ export async function getPlayer(videoId: string, env: Env, budgetMs = 20000): Pr
         const all = [...(data.streamingData.formats || []), ...(data.streamingData.adaptiveFormats || [])];
         if (all.some((f: any) => f.url)) return { data, client: c.name };
         lastReason = "الروابط مشفّرة (signatureCipher)";
+        trail.push(`${c.name}: ${lastReason}`);
         continue;
       }
       lastReason = data?.playabilityStatus?.reason || status || "unknown";
+      trail.push(`${c.name}: ${lastReason}`);
     } catch (e: any) {
       lastReason = e?.message || lastReason;
+      trail.push(`${c.name}: ${e?.message}`);
     }
   }
   const botBlocked = /bot|sign in|confirm/i.test(lastReason);
